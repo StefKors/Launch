@@ -184,6 +184,21 @@ note "project version was $CURRENT_VERSION (build $CURRENT_BUILD)"
 say "Checking the setup"
 need xcodebuild "Install Xcode."
 need xcrun "Install Xcode."
+
+# `xcode-select` often points at the Command Line Tools, which can't build an
+# app. Use the Xcode in /Applications for this run instead of failing deep in
+# the build. (Set DEVELOPER_DIR yourself to choose another one.)
+if ! xcodebuild -version >/dev/null 2>&1; then
+    for xcode in /Applications/Xcode.app /Applications/Xcode-*.app /Applications/Xcode*.app; do
+        if [[ -d "$xcode/Contents/Developer" ]]; then
+            export DEVELOPER_DIR="$xcode/Contents/Developer"
+            break
+        fi
+    done
+    xcodebuild -version >/dev/null 2>&1 || die "xcodebuild needs a full Xcode, but the active developer directory is $(xcode-select -p).
+    Install Xcode, or point at it once:  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+    note "using Xcode at $DEVELOPER_DIR (xcode-select points elsewhere)"
+fi
 need git "Install git."
 need gh "brew install gh, then gh auth login."
 need cargo "Install Rust (https://rustup.rs): the file search engine is built from Rust."
