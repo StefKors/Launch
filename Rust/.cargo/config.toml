@@ -1,0 +1,7 @@
+# Apple silicon only (macOS 27 has no Intel). Not `native`: the build machine
+# may differ from the machine the app runs on.
+[build]
+target = "aarch64-apple-darwin"
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "target-cpu=apple-m1"]
