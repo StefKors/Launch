@@ -23,6 +23,9 @@ final class LauncherViewModel {
         self.router = router
     }
 
+    /// Placeholder for the empty field, naming the features that are on.
+    var defaultPlaceholder: String { router.defaultPlaceholder }
+
     var selectedItem: LauncherItem? {
         results.first { $0.id == selectedID }
     }

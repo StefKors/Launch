@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sparkle (software updates). Merged into the generated Info.plist. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/StefKors/Launch/releases/latest/download/appcast.xml</string>
+	<!-- Public half of the update signing key. The private half is in the
+	     login keychain; scripts/release.sh checks the two match. -->
+	<key>SUPublicEDKey</key>
+	<string>hFNRLNdq7Z+QwtL4tJ0CzUxE96dl6NifM74FPzLds1M=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+</dict>
+</plist>

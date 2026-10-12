@@ -14,7 +14,8 @@
 #   3. archives the Release build with the new version and exports it signed
 #      with your Developer ID Application certificate (hardened runtime)
 #   4. notarizes and staples the app, packs Launch-<version>.zip and .dmg
-#      (the dmg is notarized and stapled too), writes SHA256SUMS.txt
+#      (the dmg is notarized and stapled too), writes SHA256SUMS.txt, and
+#      signs the zip for Sparkle into appcast.xml (how installed copies update)
 #   5. asks, then writes the version into the Xcode project, commits "Release
 #      <version>", tags v<version>, pushes, and creates the GitHub release
 #
@@ -26,11 +27,16 @@
 # One-time setup:
 #   - A "Developer ID Application" certificate in your keychain. Xcode >
 #     Settings > Apple Accounts > Manage Certificates > + > Developer ID Application.
-#   - Notarization credentials, stored once in the keychain (app-specific
-#     password from appleid.apple.com):
+#   - Notarization credentials, either of:
+#       asc auth login ...   (an App Store Connect API key; used first)
 #       xcrun notarytool store-credentials launch-notary \
-#         --apple-id YOU@EXAMPLE.COM --team-id <TEAM ID>
+#         --apple-id YOU@EXAMPLE.COM --team-id <TEAM ID>   (app-specific password)
 #   - gh, logged in:  gh auth login
+#   - Sparkle's update signing key in the login keychain (already created once
+#     with Sparkle's generate_keys). BACK IT UP: without it, installed copies
+#     can never be updated. Export it with:
+#       <DerivedData>/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys -x launch-sparkle-key
+#     and keep the file in a password manager, not in the repo.
 #
 # Options:
 #   --version X.Y.Z        release this version
@@ -39,8 +45,8 @@
 #   --signing MODE         developer-id (default) | development | adhoc
 #                          development and adhoc skip notarization: the app only opens
 #                          on this Mac, so publishing needs --allow-unnotarized
-#   --notary-profile NAME  keychain profile for notarytool (default: launch-notary,
-#                          or $NOTARY_PROFILE)
+#   --notary-profile NAME  keychain profile for notarytool, used when asc isn't logged in
+#                          (default: launch-notary, or $NOTARY_PROFILE)
 #   --skip-tests           don't run the unit tests
 #   --skip-notarize        sign but don't notarize (implies --allow-unnotarized to publish)
 #   --dry-run              stop after packaging: no notarization, commit, tag, push or release
@@ -207,6 +213,7 @@ fi
 
 TEAM_ID="$(project_setting DEVELOPMENT_TEAM)"
 IDENTITY=""
+NOTARY_TOOL=""
 if [[ "$SIGNING" == developer-id ]]; then
     IDENTITY="$(security find-identity -v -p codesigning | grep -o '"Developer ID Application:[^"]*"' | head -1 | tr -d '"' || true)"
     if [[ -z "$IDENTITY" ]]; then
@@ -217,10 +224,18 @@ if [[ "$SIGNING" == developer-id ]]; then
     [[ -n "$TEAM_ID" ]] || die "no DEVELOPMENT_TEAM in the project"
     note "signing identity: $IDENTITY"
     if [[ $SKIP_NOTARIZE -eq 0 && $DRY_RUN -eq 0 ]]; then
-        xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 \
-            || die "no notarization credentials named '$NOTARY_PROFILE'. Store them once:
+        # asc (App Store Connect API key) first, then a notarytool keychain profile.
+        if command -v asc >/dev/null 2>&1 && asc notarization list --limit 1 >/dev/null 2>&1; then
+            NOTARY_TOOL=asc
+            note "notarization: asc (App Store Connect API key)"
+        elif xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+            NOTARY_TOOL=notarytool
+            note "notarization: notarytool, profile $NOTARY_PROFILE"
+        else
+            die "no notarization credentials. Set up either:
+    asc auth login --name launch --key-id <KEY ID> --issuer-id <ISSUER UUID> --private-key AuthKey_<KEY ID>.p8
     xcrun notarytool store-credentials $NOTARY_PROFILE --apple-id YOU@EXAMPLE.COM --team-id $TEAM_ID"
-        note "notarization profile: $NOTARY_PROFILE"
+        fi
     fi
 fi
 
@@ -230,7 +245,9 @@ if [[ $DRY_RUN -eq 0 && ( $SKIP_NOTARIZE -eq 1 ) && $ALLOW_UNNOTARIZED -eq 0 ]];
 fi
 
 SIGN_ARGS=()
-[[ "$SIGNING" == adhoc ]] && SIGN_ARGS=(CODE_SIGN_IDENTITY=-)
+# Ad hoc: no Team ID, and with the hardened runtime on, macOS refuses to load
+# the embedded Sparkle framework ("different Team IDs"). It isn't needed there.
+[[ "$SIGNING" == adhoc ]] && SIGN_ARGS=(CODE_SIGN_IDENTITY=- ENABLE_HARDENED_RUNTIME=NO)
 
 run_xcodebuild() {   # run_xcodebuild <log name> <args...>: quiet, shows the tail on failure
     local name="$1"; shift
@@ -257,7 +274,7 @@ fi
 
 say "Archiving (Release)"
 run_xcodebuild archive -project "$PROJECT" -scheme "$SCHEME" -configuration Release \
-    -destination 'generic/platform=macOS' -archivePath "$ARCHIVE" \
+    -destination 'generic/platform=macOS' -archivePath "$ARCHIVE" -derivedDataPath "$OUT/DerivedData" \
     MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD" ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} archive
 [[ -d "$ARCHIVE/Products/Applications/$APP_NAME.app" ]] || die "the archive has no $APP_NAME.app"
 
@@ -297,22 +314,65 @@ BUILT_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Content
     || die "the built app says $BUILT_VERSION ($BUILT_BUILD), expected $VERSION ($BUILD)"
 note "version $BUILT_VERSION (build $BUILT_BUILD)"
 
+# ---------------------------------------------------------------- updates (Sparkle)
+
+say "Checking the update setup"
+SPARKLE_BIN="$OUT/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin"
+[[ -x "$SPARKLE_BIN/generate_appcast" && -x "$SPARKLE_BIN/generate_keys" ]] \
+    || die "Sparkle's tools weren't found in $SPARKLE_BIN (did the package resolve?)"
+APP_PLIST="$APP/Contents/Info.plist"
+APP_FEED="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$APP_PLIST" 2>/dev/null || true)"
+APP_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$APP_PLIST" 2>/dev/null || true)"
+[[ -n "$APP_FEED" && -n "$APP_KEY" ]] || die "the app has no SUFeedURL or SUPublicEDKey (see Config/Info.plist)"
+EXPECTED_FEED="https://github.com/$REPO/releases/latest/download/appcast.xml"
+[[ "$APP_FEED" == "$EXPECTED_FEED" ]] \
+    || die "the app's update feed is $APP_FEED, expected $EXPECTED_FEED. Installed copies would look in the wrong place."
+KEYCHAIN_KEY="$("$SPARKLE_BIN/generate_keys" -p 2>/dev/null || true)"
+[[ -n "$KEYCHAIN_KEY" ]] || die "no Sparkle signing key in your keychain. Without it updates can't be signed."
+[[ "$KEYCHAIN_KEY" == "$APP_KEY" ]] \
+    || die "the Sparkle key in your keychain doesn't match the app's SUPublicEDKey. Updates signed with it would be rejected by every installed copy."
+note "feed: $APP_FEED"
+note "signing key matches the app's public key"
+
 if [[ "$SIGNING" == developer-id ]]; then
     grep -q 'flags=.*runtime' <<<"$SIG" || die "the app isn't signed with the hardened runtime (required for notarization)"
     grep -q '^Authority=Developer ID Application' <<<"$SIG" || die "the app isn't signed with a Developer ID Application certificate"
 fi
+
+# ---------------------------------------------------------------- smoke test
+
+# Run the exported app itself: it exits 0 when it launches. This catches a
+# build that signs and verifies but can't start (for example an embedded
+# framework with a different Team ID, which dyld refuses to load).
+say "Launching the exported app once (smoke test)"
+if ! perl -e 'alarm 30; exec @ARGV' "$APP/Contents/MacOS/$APP_NAME" --smoke-test >"$OUT/smoke.log" 2>&1; then
+    tail -n 15 "$OUT/smoke.log" >&2
+    die "the exported app doesn't launch. Look for a crash report: ~/Library/Logs/DiagnosticReports/$APP_NAME-*.ips"
+fi
+grep -q 'smoke test ok' "$OUT/smoke.log" || die "the exported app exited without reporting success (see $OUT/smoke.log)"
+note "launches and quits cleanly"
 
 # ---------------------------------------------------------------- notarize
 
 notarize() {   # notarize <file>
     local file="$1" result id
     note "uploading $(basename "$file") to Apple and waiting (usually a few minutes)..."
-    result="$(xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)" || true
-    id="$(grep -m1 -E '^[[:space:]]*id:' <<<"$result" | awk '{print $2}' || true)"
-    if ! grep -q 'status: Accepted' <<<"$result"; then
-        tail -n 8 <<<"$result" >&2
-        [[ -n "$id" ]] && xcrun notarytool log "$id" --keychain-profile "$NOTARY_PROFILE" >&2 || true
-        die "notarization of $(basename "$file") was not accepted"
+    if [[ "$NOTARY_TOOL" == asc ]]; then
+        result="$(asc notarization submit --file "$file" --wait --poll-interval 10s --timeout 30m --output json 2>&1)" || true
+        id="$(sed -nE 's/.*"id" *: *"([^"]+)".*/\1/p' <<<"$result" | head -1)"
+        if ! grep -qE '"status" *: *"Accepted"' <<<"$result"; then
+            tail -n 12 <<<"$result" >&2
+            [[ -n "$id" ]] && asc notarization log --id "$id" >&2 || true
+            die "notarization of $(basename "$file") was not accepted"
+        fi
+    else
+        result="$(xcrun notarytool submit "$file" --keychain-profile "$NOTARY_PROFILE" --wait 2>&1)" || true
+        id="$(grep -m1 -E '^[[:space:]]*id:' <<<"$result" | awk '{print $2}' || true)"
+        if ! grep -q 'status: Accepted' <<<"$result"; then
+            tail -n 8 <<<"$result" >&2
+            [[ -n "$id" ]] && xcrun notarytool log "$id" --keychain-profile "$NOTARY_PROFILE" >&2 || true
+            die "notarization of $(basename "$file") was not accepted"
+        fi
     fi
     note "accepted ($id)"
 }
@@ -334,6 +394,27 @@ fi
 say "Packaging"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
+# Sparkle's appcast: the zip's version, size and EdDSA signature, and where to
+# download it. It is published as a release asset, and the app's feed URL
+# (releases/latest/download/appcast.xml) always finds the newest one.
+APPCAST_DIR="$OUT/appcast"
+rm -rf "$APPCAST_DIR" && mkdir -p "$APPCAST_DIR"
+cp "$ZIP" "$APPCAST_DIR/"
+if [[ -n "$NOTES_FILE" ]]; then
+    cp "$NOTES_FILE" "$APPCAST_DIR/$APP_NAME-$VERSION.md"
+else
+    printf '## %s %s\n\nSee the [release notes](https://github.com/%s/releases/tag/%s).\n' "$APP_NAME" "$VERSION" "$REPO" "$TAG" >"$APPCAST_DIR/$APP_NAME-$VERSION.md"
+fi
+"$SPARKLE_BIN/generate_appcast" --download-url-prefix "https://github.com/$REPO/releases/download/$TAG/" \
+    --embed-release-notes -o "$ARTIFACTS/appcast.xml" "$APPCAST_DIR" >"$OUT/appcast.log" 2>&1 \
+    || { tail -n 20 "$OUT/appcast.log" >&2; die "couldn't generate the appcast"; }
+grep -q 'sparkle:edSignature' "$ARTIFACTS/appcast.xml" || die "the appcast has no EdDSA signature"
+grep -q "<sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>" "$ARTIFACTS/appcast.xml" || die "the appcast doesn't list version $VERSION"
+grep -q "releases/download/$TAG/$APP_NAME-$VERSION.zip" "$ARTIFACTS/appcast.xml" || die "the appcast doesn't point at the $TAG download"
+APPCAST_SIG="$(sed -nE 's/.*sparkle:edSignature="([^"]*)".*/\1/p' "$ARTIFACTS/appcast.xml" | head -1)"
+"$SPARKLE_BIN/sign_update" --verify "$ZIP" "$APPCAST_SIG" >/dev/null 2>&1 || die "the appcast signature doesn't verify against the zip"
+note "appcast.xml signed for $VERSION, signature verified"
+
 STAGE="$OUT/dmg"
 rm -rf "$STAGE" && mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/$APP_NAME.app"
@@ -351,7 +432,7 @@ if [[ "$SIGNING" == developer-id ]]; then
 fi
 
 ( cd "$ARTIFACTS" && shasum -a 256 "$(basename "$ZIP")" "$(basename "$DMG")" >SHA256SUMS.txt )
-ASSETS=("$DMG" "$ZIP" "$ARTIFACTS/SHA256SUMS.txt")
+ASSETS=("$DMG" "$ZIP" "$ARTIFACTS/appcast.xml" "$ARTIFACTS/SHA256SUMS.txt")
 ls -lh "${ASSETS[@]}" | awk '{print "    " $5 "  " $NF}'
 
 if [[ $SKIP_NOTARIZE -eq 0 && $DRY_RUN -eq 0 ]]; then

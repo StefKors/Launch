@@ -1,6 +1,7 @@
 import SwiftUI
 
 enum LauncherMetrics {
+    /// The card itself.
     static let width: CGFloat = 680
     static let searchHeight: CGFloat = 60
     static let rowHeight: CGFloat = 48
@@ -8,11 +9,17 @@ enum LauncherMetrics {
     static let maxRows = 8
     static let listPadding: CGFloat = 8
 
+    /// Transparent room around the card inside the window. The card's shadow is
+    /// drawn into it; without it the shadow is cut off at the window's edge.
+    static let shadowMargin: CGFloat = 40
+
+    static let cardMaxHeight = searchHeight + CGFloat(maxRows) * rowHeight + listPadding * 2 + footerHeight + 1
+
     /// The panel is always full height and transparent below the card, so
     /// resizing the list never resizes a window.
     static let panelSize = CGSize(
-        width: width,
-        height: searchHeight + CGFloat(maxRows) * rowHeight + listPadding * 2 + footerHeight + 1
+        width: width + shadowMargin * 2,
+        height: cardMaxHeight + shadowMargin * 2
     )
 }
 
@@ -24,6 +31,8 @@ struct LauncherView: View {
             card
             Spacer(minLength: 0)
         }
+        .padding(.horizontal, LauncherMetrics.shadowMargin)
+        .padding(.top, LauncherMetrics.shadowMargin)
         .frame(width: LauncherMetrics.panelSize.width, height: LauncherMetrics.panelSize.height, alignment: .top)
         .contentShape(Rectangle())
         .onTapGesture { model.onDismiss() }
@@ -31,7 +40,7 @@ struct LauncherView: View {
 
     private var card: some View {
         VStack(spacing: 0) {
-            SearchField(text: queryBinding, mode: model.mode, focusToken: model.focusToken)
+            SearchField(text: queryBinding, mode: model.mode, placeholder: model.defaultPlaceholder, focusToken: model.focusToken)
 
             if !model.results.isEmpty {
                 Divider()

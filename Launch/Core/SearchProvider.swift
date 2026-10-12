@@ -16,6 +16,8 @@ struct ModeInfo {
     var name: String
     /// Placeholder while the field is empty ("Search files").
     var placeholder: String
+    /// What the provider finds, for the default placeholder ("files").
+    var noun: String? = nil
     /// Small icon in front of the badge text.
     var icon: LauncherItem.Icon? = nil
 }

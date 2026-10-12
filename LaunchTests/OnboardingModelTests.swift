@@ -42,7 +42,11 @@ struct OnboardingModelTests {
     }
 
     private func model(_ system: FakeSystem = FakeSystem(), defaults: UserDefaults? = nil) -> OnboardingModel {
-        OnboardingModel(hotKey: HotKeySettings(), fileSearch: system.engine, probes: system.probes, defaults: defaults ?? isolatedDefaults())
+        let defaults = defaults ?? isolatedDefaults()
+        return OnboardingModel(
+            hotKey: HotKeySettings(), features: FeatureSettings(defaults: defaults),
+            fileSearch: system.engine, probes: system.probes, defaults: defaults
+        )
     }
 
     @Test func walksThroughTheStepsAndStopsAtTheEnds() {

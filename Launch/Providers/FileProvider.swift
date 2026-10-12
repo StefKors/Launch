@@ -7,8 +7,7 @@ import AppKit
 struct FileProvider: SearchProvider {
     let id = "files"
     let triggers = ["f", "file", "/"]
-    let modeInfo: ModeInfo? = ModeInfo(name: "Files", placeholder: "Search files", icon: .file(path: Self.finderPath))
-    private static let finderPath = "/System/Library/CoreServices/Finder.app"
+    let modeInfo: ModeInfo? = ModeInfo(name: "Files", placeholder: "Search files", noun: "files", icon: Feature.fileSearch.icon)
     let includedInDefaultSearch = true
     let defaultLimit = 1
 
@@ -45,7 +44,7 @@ struct FileProvider: SearchProvider {
             id: "\(id):mode",
             title: "File Search",
             subtitle: "Search files for “\(text)”",
-            icon: .file(path: Self.finderPath),
+            icon: Feature.fileSearch.icon,
             primary: .init(title: "Search Files") { [id] in .enterMode(providerID: id, query: text) }
         )
     }

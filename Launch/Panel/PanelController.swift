@@ -36,7 +36,8 @@ final class PanelController {
         panel.orderOut(nil)
     }
 
-    /// Top of the card sits a fifth of the way down the screen under the mouse.
+    /// Top of the card (not of the window, which has a transparent margin for
+    /// the shadow) sits a fifth of the way down the screen under the mouse.
     private func position() {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
@@ -44,7 +45,7 @@ final class PanelController {
         let size = LauncherMetrics.panelSize
         let origin = NSPoint(
             x: visible.midX - size.width / 2,
-            y: visible.maxY - visible.height * 0.18 - size.height
+            y: visible.maxY - visible.height * 0.18 - size.height + LauncherMetrics.shadowMargin
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: false)
     }

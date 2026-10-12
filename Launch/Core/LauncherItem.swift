@@ -1,5 +1,10 @@
 import Foundation
 
+/// Background colour of an icon tile. The UI maps it to a real colour.
+enum IconTint: Equatable {
+    case red
+}
+
 /// One row in the launcher. Providers build these; the UI only renders them
 /// and runs the action matching the pressed modifier.
 struct LauncherItem: Identifiable {
@@ -7,6 +12,8 @@ struct LauncherItem: Identifiable {
         /// Icon the system shows for the file or app at this path.
         case file(path: String)
         case symbol(String)
+        /// A symbol on a coloured rounded square, drawn like an app icon.
+        case tile(symbol: String, tint: IconTint)
     }
 
     enum ActionResult {

@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchField: View {
     @Binding var text: String
     var mode: SearchMode?
+    var placeholder: String
     var focusToken: Int
 
     @FocusState private var isFocused: Bool
@@ -17,7 +18,7 @@ struct SearchField: View {
                 if let mode {
                     ModeBadge(name: mode.name, icon: mode.icon)
                 }
-                TextField(mode?.placeholder ?? "Search apps, files, processes", text: $text)
+                TextField(mode?.placeholder ?? placeholder, text: $text)
                     .textFieldStyle(.plain)
                     .font(.system(size: 22, weight: .light))
                     .focused($isFocused)

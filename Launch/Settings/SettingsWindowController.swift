@@ -5,11 +5,15 @@ import SwiftUI
 /// Settings scene is unreliable to open from one, so this owns a plain window.
 final class SettingsWindowController {
     private let hotKey: HotKeySettings
+    private let features: FeatureSettings
+    private let updater: Updater
     private let fileSearch: (any FileSearching)?
     private var window: NSWindow?
 
-    init(hotKey: HotKeySettings, fileSearch: (any FileSearching)?) {
+    init(hotKey: HotKeySettings, features: FeatureSettings, updater: Updater, fileSearch: (any FileSearching)?) {
         self.hotKey = hotKey
+        self.features = features
+        self.updater = updater
         self.fileSearch = fileSearch
     }
 
@@ -21,7 +25,7 @@ final class SettingsWindowController {
     }
 
     private func makeWindow() -> NSWindow {
-        let controller = NSHostingController(rootView: SettingsView(hotKey: hotKey, fileSearch: fileSearch))
+        let controller = NSHostingController(rootView: SettingsView(hotKey: hotKey, features: features, updater: updater, fileSearch: fileSearch))
         let window = NSWindow(contentViewController: controller)
         window.title = "Launch Settings"
         window.styleMask = [.titled, .closable]

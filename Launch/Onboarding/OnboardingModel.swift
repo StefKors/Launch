@@ -24,6 +24,7 @@ final class OnboardingModel {
     private(set) var engineSkipsProtectedFolders = false
 
     let hotKey: HotKeySettings
+    let features: FeatureSettings
 
     @ObservationIgnored private let fileSearch: (any FileSearching)?
     @ObservationIgnored private let probes: Probes
@@ -41,8 +42,9 @@ final class OnboardingModel {
         defaults.bool(forKey: completedKey)
     }
 
-    init(hotKey: HotKeySettings, fileSearch: (any FileSearching)?, probes: Probes = Probes(), defaults: UserDefaults = .standard) {
+    init(hotKey: HotKeySettings, features: FeatureSettings, fileSearch: (any FileSearching)?, probes: Probes = Probes(), defaults: UserDefaults = .standard) {
         self.hotKey = hotKey
+        self.features = features
         self.fileSearch = fileSearch
         self.probes = probes
         self.defaults = defaults

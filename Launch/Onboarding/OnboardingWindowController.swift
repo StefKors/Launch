@@ -9,8 +9,8 @@ final class OnboardingWindowController {
     private var window: NSWindow?
 
     /// `start` runs when the user finishes: it opens the launcher.
-    init(hotKey: HotKeySettings, fileSearch: (any FileSearching)?, start: @escaping () -> Void) {
-        model = OnboardingModel(hotKey: hotKey, fileSearch: fileSearch)
+    init(hotKey: HotKeySettings, features: FeatureSettings, fileSearch: (any FileSearching)?, start: @escaping () -> Void) {
+        model = OnboardingModel(hotKey: hotKey, features: features, fileSearch: fileSearch)
         self.start = start
         model.onFinish = { [weak self] restart in self?.finish(restart: restart) }
         model.onRestartRequested = { AppRelauncher.relaunch(showLauncher: false) }

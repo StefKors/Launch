@@ -6,7 +6,7 @@
 #### Supported Platforms
 <img src="https://stefkors.com/api/platform/index.svg?os=macos" />
 
-<img src="[TODO: screenshot of the launcher with app results, e.g. /screenshots/launcher.png]">
+<img src="screenshots/launcher.png">
 <img src="[TODO: screenshot of file search mode with the Files badge, e.g. /screenshots/files.png]">
 <img src="[TODO: screenshot of the welcome tour, e.g. /screenshots/welcome.png]">
 
@@ -42,12 +42,20 @@ A Spotlight-style launcher for macOS. Press ⌘Space, type, press Return.
 
 ⌘Return reveals in Finder. ⌥Return is the alternate action shown in the footer.
 
+File Search and Kill can each be switched off in Settings → Features (opening apps is always on). With File Search off, the file index isn't loaded at all, so it costs no memory.
+
 ## Permissions
 
 - **Full Disk Access** (optional): lets file search include Desktop, Documents, Downloads and iCloud Drive. Grant it in System Settings → Privacy & Security, then restart Launch. The welcome tour has a button for it.
 - File search skips `~/Pictures`, `~/Movies`, `~/Music` and `~/Library`: macOS asks for permission each time an app opens them (Photos, Media & Apple Music), and Full Disk Access doesn't cover that. The list lives in `Rust/src/lib.rs` (`NEVER_INDEXED`); the index is rebuilt automatically when it changes.
 
 Launch is not sandboxed: it indexes the whole disk and signals other processes.
+
+## Updates
+
+Launch updates itself with [Sparkle](https://sparkle-project.org). It checks about once a day (switch it off, or check now, in Settings → Updates, or from the menu bar's "Check for Updates…"). When there's a new version it shows Sparkle's window, downloads it, verifies its signature, replaces the app and relaunches.
+
+The update feed is `appcast.xml`, attached to every GitHub release; the app always reads the one from the latest release. Each update is signed with an EdDSA key whose public half is in `Config/Info.plist` (`SUPublicEDKey`). `scripts/release.sh` signs with the private half from your keychain and refuses to release if it doesn't match.
 
 ## Build
 
@@ -72,16 +80,26 @@ scripts/release.sh --dry-run                  # build, sign and package only
 scripts/release.sh --help                     # every option
 ```
 
-It runs the tests, archives the Release build, exports it signed with Developer ID (hardened runtime), notarizes and staples the app and a `.dmg`, writes a `.zip` and `SHA256SUMS.txt`, then commits `Release <version>`, tags `v<version>`, pushes and creates the release. The version goes into the Xcode project only at that last step, so a failed build leaves your files alone.
+It runs the tests, archives the Release build, exports it signed with Developer ID (hardened runtime), launches the exported app once as a smoke test, notarizes and staples the app and a `.dmg`, writes a `.zip`, a signed `appcast.xml` and `SHA256SUMS.txt`, then commits `Release <version>`, tags `v<version>`, pushes and creates the release. The version goes into the Xcode project only at that last step, so a failed build leaves your files alone.
 
 One-time setup:
 
 1. A **Developer ID Application** certificate: Xcode → Settings → Apple Accounts → Manage Certificates → + → Developer ID Application.
-2. Notarization credentials, stored in your keychain (use an [app-specific password](https://support.apple.com/102654)):
-   ```sh
-   xcrun notarytool store-credentials launch-notary --apple-id YOU@EXAMPLE.COM --team-id <TEAM ID>
-   ```
+2. Notarization credentials, either of:
+   - An App Store Connect API key, with the [`asc` CLI](https://asccli.sh) (used first):
+     ```sh
+     asc auth login --name launch --key-id <KEY ID> --issuer-id <ISSUER UUID> --private-key AuthKey_<KEY ID>.p8
+     ```
+   - Or an [app-specific password](https://support.apple.com/102654), stored for `notarytool`:
+     ```sh
+     xcrun notarytool store-credentials launch-notary --apple-id YOU@EXAMPLE.COM --team-id <TEAM ID>
+     ```
 3. `gh auth login`.
+4. Sparkle's signing key in your keychain (created once with `generate_keys` from the Sparkle package). **Back it up**: without it, installed copies can never be updated.
+   ```sh
+   <DerivedData>/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys -x launch-sparkle-key
+   ```
+   Keep that file in a password manager, never in the repo.
 
 `--signing development` builds with your Apple Development certificate instead. That app only opens on your own Mac, so publishing it needs `--allow-unnotarized` and the release is marked as a pre-release.
 
@@ -91,6 +109,8 @@ One-time setup:
 - `Launch/Providers`: apps, files, processes. Add a feature by adding a `SearchProvider`.
 - `Launch/Search`: the `FileSearching` seam and the in-process fsearch engine.
 - `Launch/Onboarding`: the welcome tour.
+- `Launch/Updates`: the Sparkle updater.
+- `Config/Info.plist`: Sparkle's feed URL and public key, merged into the app's Info.plist.
 - `Rust/`: C interface to fsearch (`include/launch_fsearch.h`).
 - `scripts/release.sh`: the release script.
 

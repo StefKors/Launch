@@ -4,7 +4,7 @@ import AppKit
 struct ProcessProvider: SearchProvider {
     let id = "processes"
     let triggers = ["kill"]
-    let modeInfo: ModeInfo? = ModeInfo(name: "Kill", placeholder: "Search running processes")
+    let modeInfo: ModeInfo? = ModeInfo(name: "Kill", placeholder: "Search running processes", noun: "processes", icon: Feature.kill.icon)
     let includedInDefaultSearch = false
     let defaultLimit = 0
 

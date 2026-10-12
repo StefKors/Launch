@@ -2,7 +2,23 @@ import Foundation
 
 /// Decides which providers see a query and merges what they return.
 struct QueryRouter {
-    let providers: [any SearchProvider]
+    /// Asked every time, so providers can be switched off while the app runs.
+    private let source: () -> [any SearchProvider]
+
+    var providers: [any SearchProvider] { source() }
+
+    init(providers: [any SearchProvider]) {
+        source = { providers }
+    }
+
+    init(source: @escaping () -> [any SearchProvider]) {
+        self.source = source
+    }
+
+    /// "Search apps, files, processes", naming only what is switched on.
+    var defaultPlaceholder: String {
+        "Search " + (["apps"] + providers.compactMap { $0.modeInfo?.noun }).joined(separator: ", ")
+    }
 
     /// Longest triggers first, so "kill " wins over a hypothetical "k ".
     func parse(_ raw: String) -> (query: ParsedQuery, providers: [any SearchProvider]) {

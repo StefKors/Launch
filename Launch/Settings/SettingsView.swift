@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     let hotKey: HotKeySettings
+    let features: FeatureSettings
+    let updater: Updater
     let fileSearch: (any FileSearching)?
 
     @State private var indexStatus: FileSearchStatus?
@@ -10,13 +12,17 @@ struct SettingsView: View {
         Form {
             ShortcutSection(hotKey: hotKey)
 
+            FeaturesSection(features: features, footnotes: footnotes)
+
+            if features.isEnabled(.fileSearch), fileSearch != nil {
+                fileSearchSection
+            }
+
             Section("General") {
                 LaunchAtLoginToggle()
             }
 
-            if fileSearch != nil {
-                fileSearchSection
-            }
+            UpdatesSection(updater: updater)
         }
         .formStyle(.grouped)
         .frame(width: 460)
@@ -28,6 +34,13 @@ struct SettingsView: View {
                 try? await Task.sleep(for: .seconds(2))
             }
         }
+    }
+
+    /// File search switched off, but its engine is still running: it can't be
+    /// stopped, only left out at the next launch.
+    private var footnotes: [Feature: String] {
+        guard !features.isEnabled(.fileSearch), indexStatus != nil else { return [:] }
+        return [.fileSearch: "Indexing keeps running until Launch is restarted."]
     }
 
     private var fileSearchSection: some View {
