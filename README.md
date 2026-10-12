@@ -7,112 +7,61 @@
 <img src="https://stefkors.com/api/platform/index.svg?os=macos" />
 
 <img src="screenshots/launcher.png">
-<img src="[TODO: screenshot of file search mode with the Files badge, e.g. /screenshots/files.png]">
-<img src="[TODO: screenshot of the welcome tour, e.g. /screenshots/welcome.png]">
 
 A Spotlight-style launcher for macOS. Press ⌘Space, type, press Return.
 
 **Links**
 - Download: [Latest release](https://github.com/StefKors/Launch/releases/latest)
-- Repo: [github.com/StefKors/Launch](https://github.com/StefKors/Launch)
-- Website: [TODO: website URL, if any]
+- Website: [stefkors.com/launch](https://stefkors.com/launch/)
+- Building it yourself: [DEVELOPMENT.md](DEVELOPMENT.md)
 
 **Features**
 - Opens apps from a few letters or their initials, and learns which ones you use most
-- File search across the whole disk, powered by [fsearch](https://github.com/noahdunnagan/fsearch) running inside the app
-- Quit or force-quit any of your processes with `kill`
-- Mode badge in the search field: backspace on an empty field leaves the mode
-- Welcome tour that walks through the shortcut and permissions, and resumes after a restart
-- Native SwiftUI and Liquid Glass
+- Searches files and folders across your whole Mac, powered by [fsearch](https://github.com/noahdunnagan/fsearch)
+- Quits or force-quits any of your running processes with `kill`
+- Updates itself, and has no analytics
+- Native macOS look with Liquid Glass
 
 ## Install
 
-1. Download `Launch-<version>.dmg` from the [latest release](https://github.com/StefKors/Launch/releases/latest) and drag Launch to Applications. It needs macOS 27 or later on Apple silicon.
+1. Download `Launch-<version>.dmg` from the [latest release](https://github.com/StefKors/Launch/releases/latest) and drag Launch to Applications. It needs macOS 27 or later on an Apple silicon Mac.
 2. Open it and follow the welcome tour.
 3. Turn off Spotlight's ⌘Space (System Settings → Keyboard → Keyboard Shortcuts → Spotlight), or record another shortcut in Launch's settings.
 
-## Usage
+## Use it
+
+Press ⌘Space and start typing.
 
 | Type | Result |
 | --- | --- |
-| `saf`, `sysset`, `vsc` | Apps, matched by name, word start or initials. Frequently used apps rank higher. |
-| `cv.pdf` | Matching apps, then a **File Search** row. Return on it switches to file mode. |
-| `f cv.pdf ext:pdf` or `/cv.pdf` | File mode directly, with [fsearch](https://github.com/noahdunnagan/fsearch) query syntax. Delete the `f ` to leave it. |
-| `kill chrome` | Running processes. Return quits, ⌥Return force-quits. |
+| `saf`, `sysset`, `vsc` | Apps, matched by name, the start of a word, or initials. Apps you use often rank higher. |
+| `cv.pdf` | Matching apps, then a **File Search** row. Press Return on it to search files. |
+| `f cv.pdf ext:pdf` or `/cv.pdf` | Search files directly. `ext:`, `in:`, `kind:` and the other [fsearch](https://github.com/noahdunnagan/fsearch) filters work. |
+| `kill chrome` | Running processes. Return quits one, ⌥Return force-quits it. |
 
-⌘Return reveals in Finder. ⌥Return is the alternate action shown in the footer.
+- **⌘Return** reveals the selected item in Finder.
+- **⌥Return** is the alternate action shown in the footer, such as Force Quit or Copy Path.
+- **Backspace** on an empty field leaves file search or kill mode.
+- **Esc** closes the launcher.
 
-File Search and Kill can each be switched off in Settings → Features (opening apps is always on). With File Search off, the file index isn't loaded at all, so it costs no memory.
+In Settings → Features you can switch File Search and Kill off. Opening apps is always on. With File Search off, nothing is indexed and it uses no memory.
 
 ## Permissions
 
-- **Full Disk Access** (optional): lets file search include Desktop, Documents, Downloads and iCloud Drive. Grant it in System Settings → Privacy & Security, then restart Launch. The welcome tour has a button for it.
-- File search skips `~/Pictures`, `~/Movies`, `~/Music` and `~/Library`: macOS asks for permission each time an app opens them (Photos, Media & Apple Music), and Full Disk Access doesn't cover that. The list lives in `Rust/src/lib.rs` (`NEVER_INDEXED`); the index is rebuilt automatically when it changes.
-
-Launch is not sandboxed: it indexes the whole disk and signals other processes.
+- **Full Disk Access** (optional) lets file search include Desktop, Documents, Downloads and iCloud Drive. Without it, those folders are skipped. Grant it in System Settings → Privacy & Security, then restart Launch. The welcome tour has a button for it.
+- **Pictures, Movies, Music and Library are never searched.** macOS asks for permission every time an app opens them, and Full Disk Access doesn't cover that, so Launch leaves them out instead of asking.
+- Launch isn't sandboxed, because it searches your whole disk and quits other processes. It only signals processes you own.
 
 ## Updates
 
-Launch updates itself with [Sparkle](https://sparkle-project.org). It checks about once a day (switch it off, or check now, in Settings → Updates, or from the menu bar's "Check for Updates…"). When there's a new version it shows Sparkle's window, downloads it, verifies its signature, replaces the app and relaunches.
+Launch checks for updates about once a day and offers to install them. Each update is signed and checked before it's installed. You can check yourself from the menu bar ("Check for Updates…") or switch automatic checks off in Settings → Updates. Apart from downloading an update, that check is the only network request Launch makes.
 
-The update feed is `appcast.xml`, attached to every GitHub release; the app always reads the one from the latest release. Each update is signed with an EdDSA key whose public half is in `Config/Info.plist` (`SUPublicEDKey`). `scripts/release.sh` signs with the private half from your keychain and refuses to release if it doesn't match.
+## Troubleshooting
 
-## Build
-
-Requires Xcode 27 and Rust (`rustup target add aarch64-apple-darwin`).
-
-```sh
-git submodule update --init
-xcodebuild -project Launch.xcodeproj -scheme Launch build
-xcodebuild -project Launch.xcodeproj -scheme Launch test
-```
-
-The Xcode target has a Run Script phase that builds `Rust/` (a small C-ABI wrapper around the pinned `Vendor/fsearch` submodule) into a static library.
-
-## Releasing
-
-[`scripts/release.sh`](scripts/release.sh) builds, signs, notarizes and publishes a release to GitHub Releases. It runs on your Mac and nothing is committed or pushed until you confirm at the end.
-
-```sh
-scripts/release.sh --version 1.0.0 --draft    # first release, as a draft to review
-scripts/release.sh --bump patch               # 1.0.0 -> 1.0.1 (or minor, major)
-scripts/release.sh --dry-run                  # build, sign and package only
-scripts/release.sh --help                     # every option
-```
-
-It runs the tests, archives the Release build, exports it signed with Developer ID (hardened runtime), launches the exported app once as a smoke test, notarizes and staples the app and a `.dmg`, writes a `.zip`, a signed `appcast.xml` and `SHA256SUMS.txt`, then commits `Release <version>`, tags `v<version>`, pushes and creates the release. The version goes into the Xcode project only at that last step, so a failed build leaves your files alone.
-
-One-time setup:
-
-1. A **Developer ID Application** certificate: Xcode → Settings → Apple Accounts → Manage Certificates → + → Developer ID Application.
-2. Notarization credentials, either of:
-   - An App Store Connect API key, with the [`asc` CLI](https://asccli.sh) (used first):
-     ```sh
-     asc auth login --name launch --key-id <KEY ID> --issuer-id <ISSUER UUID> --private-key AuthKey_<KEY ID>.p8
-     ```
-   - Or an [app-specific password](https://support.apple.com/102654), stored for `notarytool`:
-     ```sh
-     xcrun notarytool store-credentials launch-notary --apple-id YOU@EXAMPLE.COM --team-id <TEAM ID>
-     ```
-3. `gh auth login`.
-4. Sparkle's signing key in your keychain (created once with `generate_keys` from the Sparkle package). **Back it up**: without it, installed copies can never be updated.
-   ```sh
-   <DerivedData>/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_keys -x launch-sparkle-key
-   ```
-   Keep that file in a password manager, never in the repo.
-
-`--signing development` builds with your Apple Development certificate instead. That app only opens on your own Mac, so publishing it needs `--allow-unnotarized` and the release is marked as a pre-release.
-
-## Layout
-
-- `Launch/Core`: items, the provider protocol, query routing, fuzzy matching.
-- `Launch/Providers`: apps, files, processes. Add a feature by adding a `SearchProvider`.
-- `Launch/Search`: the `FileSearching` seam and the in-process fsearch engine.
-- `Launch/Onboarding`: the welcome tour.
-- `Launch/Updates`: the Sparkle updater.
-- `Config/Info.plist`: Sparkle's feed URL and public key, merged into the app's Info.plist.
-- `Rust/`: C interface to fsearch (`include/launch_fsearch.h`).
-- `scripts/release.sh`: the release script.
+- **Spotlight opens instead of Launch:** turn off its ⌘Space shortcut (see Install), or record a different shortcut in Settings.
+- **A file isn't found:** if it's in Desktop, Documents or Downloads, grant Full Disk Access. Files in Pictures, Movies, Music and Library aren't searched.
+- **The first search is empty:** on first launch Launch is still building its file index, which takes a few seconds. Searching files shows "Indexing files…" until it's done.
+- **Starting over:** Welcome Guide… in the menu bar replays the welcome tour.
 
 **License**
-[TODO: choose a license for Launch (the repo has none yet). fsearch, in `Vendor/fsearch`, is MIT.]
+MIT © Launch. See [LICENSE](LICENSE). It bundles [fsearch](https://github.com/noahdunnagan/fsearch) (MIT) and [Sparkle](https://sparkle-project.org) (its own permissive license).
