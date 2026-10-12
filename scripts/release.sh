@@ -472,7 +472,18 @@ if ! git diff --quiet -- "$PBXPROJ"; then
     git commit -m "Release $VERSION" -- "$PBXPROJ"
 fi
 git tag -a "$TAG" -m "$APP_NAME $VERSION"
-git push origin HEAD "$TAG"
+
+# Push with gh's login when `origin` is an https URL. gh is already signed in
+# (and is what creates the release below); plain git would ask for a password
+# that GitHub no longer accepts. SSH remotes use your SSH key as usual.
+GIT_PUSH=(git)
+if [[ "$(git remote get-url origin)" == https://* ]]; then
+    GIT_PUSH=(git -c credential.helper= -c 'credential.helper=!gh auth git-credential')
+fi
+"${GIT_PUSH[@]}" push origin HEAD "$TAG" || die "the push failed. The release commit and the tag $TAG exist locally.
+    Fix the cause, then finish by hand:
+      git push origin HEAD $TAG
+      gh release create $TAG ${ASSETS[*]} --repo $REPO --title \"$APP_NAME $VERSION\" --generate-notes"
 
 NOTES_ARGS=()
 if [[ -n "$NOTES_FILE" ]]; then
