@@ -10,42 +10,75 @@ final class PanelController {
     init(model: LauncherViewModel) {
         self.model = model
         panel = LauncherPanel(size: LauncherMetrics.panelSize)
-        panel.contentView = NSHostingView(rootView: LauncherView(model: model))
+        let hostingView = NSHostingView(rootView: LauncherView(model: model))
+        // The panel is sized by `position()`, never by what the view asks for.
+        hostingView.sizingOptions = []
+        panel.contentView = hostingView
         panel.onResignKey = { [weak self] in self?.hide() }
         model.onDismiss = { [weak self] in self?.hide() }
     }
 
-    var isVisible: Bool { panel.isVisible }
+    /// Whether the launcher is meant to be showing. The window outlives this by
+    /// `LauncherMetrics.transitionDuration` while it blurs away.
+    private(set) var isShown = false
+    private var pendingOrderOut: DispatchWorkItem?
 
     func toggle() {
-        isVisible ? hide() : show()
+        isShown ? hide() : show()
     }
 
     func show() {
-        guard !isVisible else { return }
+        guard !isShown else { return }
+        isShown = true
+        // Shown again while still blurring away: keep that window.
+        pendingOrderOut?.cancel()
+        pendingOrderOut = nil
+        panel.ignoresMouseEvents = false
+
+        model.isPresented = false
         model.reset()
         position()
         panel.makeKeyAndOrderFront(nil)
         installKeyMonitor()
+        // One turn later, so the window is up before it animates in.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, isShown else { return }
+            model.isPresented = true
+        }
     }
 
     func hide() {
-        guard isVisible else { return }
+        guard isShown else { return }
+        isShown = false
         removeKeyMonitor()
         model.cancel()
-        panel.orderOut(nil)
+        model.isPresented = false
+        // Whatever is under the launcher gets the clicks while it fades.
+        panel.ignoresMouseEvents = true
+
+        let order = DispatchWorkItem { [weak self] in
+            guard let self, !isShown else { return }
+            panel.orderOut(nil)
+            pendingOrderOut = nil
+        }
+        pendingOrderOut = order
+        DispatchQueue.main.asyncAfter(deadline: .now() + LauncherMetrics.transitionDuration, execute: order)
     }
 
-    /// Top of the card (not of the window, which has a transparent margin for
-    /// the shadow) sits a fifth of the way down the screen under the mouse.
+    /// The content (not the window, which has a transparent margin for the
+    /// blur to fade out in) starts a seventh of the way down the screen under
+    /// the mouse. On a short screen the window is cut down to fit, and the
+    /// list shows fewer rows.
     private func position() {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
-        let size = LauncherMetrics.panelSize
+        var size = LauncherMetrics.panelSize
+        size.height = min(size.height, visible.height)
+        let top = visible.maxY - visible.height * 0.14 + LauncherMetrics.blurMarginTop
         let origin = NSPoint(
             x: visible.midX - size.width / 2,
-            y: visible.maxY - visible.height * 0.18 - size.height + LauncherMetrics.shadowMargin
+            y: max(visible.minY, top - size.height)
         )
         panel.setFrame(NSRect(origin: origin, size: size), display: false)
     }

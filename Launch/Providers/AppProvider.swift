@@ -4,7 +4,7 @@ struct AppProvider: SearchProvider {
     let id = "apps"
     let triggers: [String] = []
     let includedInDefaultSearch = true
-    let defaultLimit = 6
+    let defaultLimit = 10
 
     let index: AppIndex
 

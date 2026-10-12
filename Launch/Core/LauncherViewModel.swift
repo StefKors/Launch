@@ -6,6 +6,10 @@ final class LauncherViewModel {
     var query = ""
     private(set) var results: [LauncherItem] = []
     var selectedID: LauncherItem.ID?
+    /// True while the launcher is meant to be on screen. The panel sets it
+    /// after the window is up and clears it before the window goes, so the
+    /// view has something to animate between: it blurs in and out of this.
+    var isPresented = false
     /// Bumped on every show so the view can put focus back in the field.
     private(set) var focusToken = 0
     private(set) var errorMessage: String?

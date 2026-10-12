@@ -1,25 +1,41 @@
 import SwiftUI
 
 enum LauncherMetrics {
-    /// The card itself.
-    static let width: CGFloat = 680
-    static let searchHeight: CGFloat = 60
-    static let rowHeight: CGFloat = 48
-    static let footerHeight: CGFloat = 40
-    static let maxRows = 8
-    static let listPadding: CGFloat = 8
+    static let contentWidth: CGFloat = 480
 
-    /// Transparent room around the card inside the window. The card's shadow is
-    /// drawn into it; without it the shadow is cut off at the window's edge.
-    static let shadowMargin: CGFloat = 40
+    static let searchHeight: CGFloat = 64
+    static let rowHeight: CGFloat = 36
+    static let maxRows = 14
+    /// Only taken when an action fails and its error shows.
+    static let footerHeight: CGFloat = 44
+    /// Room above the first and below the last row, so the list's edge fade
+    /// never dims a row you are looking at.
+    static let listInset: CGFloat = 16
 
-    static let cardMaxHeight = searchHeight + CGFloat(maxRows) * rowHeight + listPadding * 2 + footerHeight + 1
+    /// Transparent room around the content for the blur to fade out in. There
+    /// is no card edge: the blur thins out over this distance.
+    static let blurMarginX: CGFloat = 250
+    static let blurMarginTop: CGFloat = 130
+    static let blurMarginBottom: CGFloat = blurMarginTop
 
-    /// The panel is always full height and transparent below the card, so
-    /// resizing the list never resizes a window.
+    /// What moving the selection animates: the icon and the text both use it,
+    /// so a row moves as one.
+    static let selectionAnimation = Animation.smooth(duration: 0.15)
+
+    /// How long the launcher takes to blur in, and to blur away before its
+    /// window is closed.
+    static let transitionDuration: TimeInterval = 0.16
+
+    /// The blur around just the search field.
+    static let collapsedBlurHeight = blurMarginTop + searchHeight + blurMarginBottom
+
+    static let contentMaxHeight = searchHeight + CGFloat(maxRows) * rowHeight + listInset * 2 + footerHeight
+
+    /// The window the panel asks for. On a short screen it is cut down and the
+    /// list simply shows fewer rows (see `PanelController`).
     static let panelSize = CGSize(
-        width: width + shadowMargin * 2,
-        height: cardMaxHeight + shadowMargin * 2
+        width: contentWidth + blurMarginX * 2,
+        height: contentMaxHeight + blurMarginTop + blurMarginBottom
     )
 }
 
@@ -28,29 +44,58 @@ struct LauncherView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            card
+            content
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, LauncherMetrics.shadowMargin)
-        .padding(.top, LauncherMetrics.shadowMargin)
-        .frame(width: LauncherMetrics.panelSize.width, height: LauncherMetrics.panelSize.height, alignment: .top)
+        .padding(.horizontal, LauncherMetrics.blurMarginX)
+        .padding(.top, LauncherMetrics.blurMarginTop)
+        .padding(.bottom, LauncherMetrics.blurMarginBottom)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(alignment: .top) { blot }
         .contentShape(Rectangle())
         .onTapGesture { model.onDismiss() }
     }
 
-    private var card: some View {
+    /// The blur is one view that is never recreated or resized; it eases its
+    /// own height to follow the list (see `ProgressiveBlur`).
+    private var blot: some View {
+        BlurBlot(height: blurHeight, isPresented: model.isPresented)
+            .equatable()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The blur is as tall as the content, plus the margin it fades out in.
+    private var blurHeight: CGFloat {
+        var content = LauncherMetrics.searchHeight
+        if !model.results.isEmpty {
+            let rows = min(model.results.count, LauncherMetrics.maxRows)
+            content += CGFloat(rows) * LauncherMetrics.rowHeight + LauncherMetrics.listInset * 2
+        }
+        if model.errorMessage != nil { content += LauncherMetrics.footerHeight }
+        return LauncherMetrics.blurMarginTop + content + LauncherMetrics.blurMarginBottom
+    }
+
+    /// Search field and list. No box around them: the blur behind
+    /// is bigger than they are and fades out on every side.
+    private var content: some View {
         VStack(spacing: 0) {
             SearchField(text: queryBinding, mode: model.mode, placeholder: model.defaultPlaceholder, focusToken: model.focusToken)
 
             if !model.results.isEmpty {
-                Divider()
                 resultList
-                Divider()
-                ActionHintBar(item: model.selectedItem, errorMessage: model.errorMessage, canGoBack: model.canExitMode)
+                if let message = model.errorMessage {
+                    ActionErrorBar(message: message)
+                }
             }
         }
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        // Swallow taps so only the transparent area dismisses.
+        .frame(width: LauncherMetrics.contentWidth)
+        // Blurs in as it appears and out as it goes.
+        .blur(radius: model.isPresented ? 0 : 14)
+        .opacity(model.isPresented ? 1 : 0)
+        .scaleEffect(model.isPresented ? 1 : 0.97, anchor: .top)
+        .animation(model.isPresented ? .smooth(duration: LauncherMetrics.transitionDuration) : .easeIn(duration: LauncherMetrics.transitionDuration), value: model.isPresented)
+        // Swallow taps so only the area around the content dismisses.
+        .contentShape(Rectangle())
         .onTapGesture {}
     }
 
@@ -73,18 +118,32 @@ struct LauncherView: View {
                             .onTapGesture { model.activate(item) }
                     }
                 }
-                .padding(LauncherMetrics.listPadding)
+                .padding(.vertical, LauncherMetrics.listInset)
             }
             .scrollIndicators(.never)
-            .frame(height: listHeight)
+            .frame(maxHeight: listHeight)
+            .mask { edgeFade }
             .onChange(of: model.selectedID) {
-                if let id = model.selectedID { proxy.scrollTo(id) }
+                guard let id = model.selectedID else { return }
+                // The selection stays in the middle and the list moves under
+                // it, like turning a dial.
+                withAnimation(.smooth(duration: 0.25)) { proxy.scrollTo(id, anchor: .center) }
             }
         }
     }
 
+    /// Rows thin out towards the top and bottom of the list.
+    private var edgeFade: some View {
+        VStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                .frame(height: LauncherMetrics.listInset)
+            Rectangle().fill(.black)
+            LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: LauncherMetrics.listInset * 3)
+        }
+    }
+
     private var listHeight: CGFloat {
-        CGFloat(min(model.results.count, LauncherMetrics.maxRows)) * LauncherMetrics.rowHeight
-            + LauncherMetrics.listPadding * 2
+        CGFloat(model.results.count) * LauncherMetrics.rowHeight + LauncherMetrics.listInset * 2
     }
 }
