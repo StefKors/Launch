@@ -6,6 +6,7 @@ How to build, test and release Launch. For what the app does, see the [README](R
 
 - macOS 27 on Apple silicon, and Xcode 27.
 - Rust, with the Apple silicon target: `rustup target add aarch64-apple-darwin`. The file search engine is built from Rust.
+- Xcode's Metal Toolchain, for the selected row's glow: `xcodebuild -downloadComponent MetalToolchain`. Without it the build stops at `cannot execute tool 'metal'`.
 - If `xcode-select -p` points at the Command Line Tools, set `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` for command-line builds. (`scripts/release.sh` does this by itself.)
 
 ## Build and test
@@ -33,6 +34,7 @@ The tests run inside the app as their host. The host skips indexing the disk, th
 - `Config/Info.plist`: Sparkle's feed URL and public key, merged into the app's Info.plist.
 - `Rust/`: the C interface to fsearch (`include/launch_fsearch.h`).
 - `Vendor/fsearch`: the fsearch submodule, pinned to a commit.
+- `Launch/Glow`: the glow round the selected row, a Metal shader and the view that drives it. Adapted from border-beam (see `NOTICE.md`).
 - `scripts/release.sh`: the release script.
 
 ## File search

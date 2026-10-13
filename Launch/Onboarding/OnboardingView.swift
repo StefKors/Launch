@@ -7,7 +7,7 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            stepContent
+            OnboardingStepContent(model: model)
                 .padding(.horizontal, 32)
                 .padding(.top, 36)
                 .padding(.bottom, 16)
@@ -24,9 +24,13 @@ struct OnboardingView: View {
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var stepContent: some View {
+/// The screen for the current step.
+private struct OnboardingStepContent: View {
+    let model: OnboardingModel
+
+    var body: some View {
         switch model.step {
         case .welcome: WelcomeStepView()
         case .permissions: PermissionsStepView(model: model)
