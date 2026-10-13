@@ -2,7 +2,7 @@ import SwiftUI
 
 /// One row, on a single line: icon, title, and the path or kind at the right.
 /// The selection itself, glass with a glow, is drawn behind the rows by
-/// `ResultRows`; the row only brightens its text.
+/// `ResultList`; the row only brightens its text.
 struct ResultRow: View {
     let item: LauncherItem
     let isSelected: Bool
@@ -54,11 +54,10 @@ private extension LauncherItem {
 /// Tap a row to select it and the highlight slides there. It sits on a
 /// clear-glass card like the panel's, over a colourful backdrop, because the
 /// selection is glass and its glow only reads against something.
-#Preview("Result rows") {
+#Preview("Result list") {
     @Previewable @State var selectedID: LauncherItem.ID? = LauncherItem.previewSamples[0].id
 
-    ResultRows(items: LauncherItem.previewSamples, selectedID: selectedID) { selectedID = $0.id }
-        .padding(LauncherMetrics.listPadding)
+    ResultList(items: LauncherItem.previewSamples, selectedID: selectedID) { selectedID = $0.id }
         .frame(width: LauncherMetrics.width)
         .glassEffect(.clear, in: .rect(cornerRadius: LauncherMetrics.cornerRadius))
         .padding(48)

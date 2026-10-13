@@ -20,7 +20,7 @@ struct LauncherMetricsTests {
     }
 
     @Test func theTallestCardHoldsAFullListAndAnError() {
-        let list = CGFloat(LauncherMetrics.maxRows) * LauncherMetrics.rowHeight + LauncherMetrics.listPadding * 2
+        let list = CGFloat(LauncherMetrics.maxRows) * LauncherMetrics.rowHeight + LauncherMetrics.listInset * 2
         let tallest = LauncherMetrics.searchHeight + list + LauncherMetrics.errorHeight + 2 * LauncherMetrics.dividerHeight
         #expect(LauncherMetrics.cardMaxHeight == tallest)
     }

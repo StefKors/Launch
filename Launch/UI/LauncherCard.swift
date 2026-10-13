@@ -22,7 +22,7 @@ struct LauncherCard: View {
 
             if !model.results.isEmpty {
                 Divider().opacity(0.5)
-                ResultList(model: model)
+                ModelResultList(model: model)
                 if let message = model.errorMessage {
                     Divider().opacity(0.5)
                     ActionErrorBar(message: message)
@@ -44,27 +44,12 @@ struct LauncherCard: View {
     }
 }
 
-/// The rows. It reads the results and the selection itself, so moving the
+/// The list, reading the results and the selection itself, so moving the
 /// selection redraws the list and not the card around it.
-private struct ResultList: View {
+private struct ModelResultList: View {
     let model: LauncherViewModel
 
-    private var height: CGFloat {
-        CGFloat(min(model.results.count, LauncherMetrics.maxRows)) * LauncherMetrics.rowHeight
-            + LauncherMetrics.listPadding * 2
-    }
-
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                ResultRows(items: model.results, selectedID: model.selectedID) { model.activate($0) }
-                .padding(LauncherMetrics.listPadding)
-            }
-            .scrollIndicators(.never)
-            .frame(height: height)
-            .onChange(of: model.selectedID) {
-                if let id = model.selectedID { proxy.scrollTo(id) }
-            }
-        }
+        ResultList(items: model.results, selectedID: model.selectedID) { model.activate($0) }
     }
 }

@@ -8,6 +8,15 @@ enum LauncherMetrics {
     static let rowHeight: CGFloat = 36
     static let maxRows = 10
     static let listPadding: CGFloat = 8
+    /// Above the first row and below the last. It is as long as the soft fade at
+    /// the list's edges (see `SoftScrollEdges`), so a selected row stays clear of it.
+    static let listInset: CGFloat = 12
+
+    /// How the selection moves from one row to the next, and how the list
+    /// scrolls to follow it. They share this, so that at the edge of the list the
+    /// highlight holds still while the rows glide past it. Quick, so it keeps up
+    /// with a held arrow key, and without a bounce.
+    static let selectionAnimation = Animation.snappy(duration: 0.12, extraBounce: 0)
 
     // What the rows and the search field share, so that the magnifier sits over
     // the row icons and the typed text starts where the titles do.
@@ -33,7 +42,7 @@ enum LauncherMetrics {
     static let transitionDuration: TimeInterval = 0.16
 
     static let cardMaxHeight = searchHeight
-        + dividerHeight + CGFloat(maxRows) * rowHeight + listPadding * 2
+        + dividerHeight + CGFloat(maxRows) * rowHeight + listInset * 2
         + dividerHeight + errorHeight
 
     /// The panel is always full height and transparent below the card, so

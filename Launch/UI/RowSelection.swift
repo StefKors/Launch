@@ -4,7 +4,7 @@ import SwiftUI
 /// clear glass, with the glow breathing round its border in `colors`.
 ///
 /// There is one of these for the whole list. It slides from row to row (see
-/// `ResultRows`) instead of one fading out as another fades in, so the glow keeps
+/// `ResultList`) instead of one fading out as another fades in, so the glow keeps
 /// breathing as the selection moves.
 struct RowSelection: View {
     static let cornerRadius: CGFloat = 12
