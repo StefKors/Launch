@@ -18,7 +18,7 @@ struct PermissionRow<Actions: View>: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            statusIcon
+            PermissionStatusIcon(state: state)
                 .font(.system(size: 20))
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 4) {
@@ -48,9 +48,13 @@ struct PermissionRow<Actions: View>: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
+}
 
-    @ViewBuilder
-    private var statusIcon: some View {
+/// The check, warning or dashed circle in front of a permission.
+private struct PermissionStatusIcon: View {
+    let state: PermissionState
+
+    var body: some View {
         switch state {
         case .granted:
             Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)

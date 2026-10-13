@@ -1,20 +1,20 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @Bindable var model: OnboardingModel
+    let model: OnboardingModel
 
     static let size = CGSize(width: 540, height: 560)
 
     var body: some View {
         VStack(spacing: 0) {
-            stepContent
+            OnboardingStepContent(model: model)
                 .padding(.horizontal, 32)
                 .padding(.top, 36)
                 .padding(.bottom, 16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             Divider()
-            footer
+            OnboardingFooter(model: model)
         }
         .frame(width: Self.size.width, height: Self.size.height)
         .task {
@@ -24,9 +24,13 @@ struct OnboardingView: View {
             }
         }
     }
+}
 
-    @ViewBuilder
-    private var stepContent: some View {
+/// The screen for the current step.
+private struct OnboardingStepContent: View {
+    let model: OnboardingModel
+
+    var body: some View {
         switch model.step {
         case .welcome: WelcomeStepView()
         case .permissions: PermissionsStepView(model: model)
@@ -34,8 +38,13 @@ struct OnboardingView: View {
         case .ready: ReadyStepView(model: model)
         }
     }
+}
 
-    private var footer: some View {
+/// Back and Continue (or the last step's Start), under the dots.
+private struct OnboardingFooter: View {
+    let model: OnboardingModel
+
+    var body: some View {
         HStack {
             StepIndicator(count: OnboardingStep.allCases.count, current: model.step.rawValue)
             Spacer()

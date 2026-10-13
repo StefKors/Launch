@@ -22,16 +22,20 @@ struct KeyCap: View {
     let key: Key
 
     var body: some View {
-        content
+        KeyCapLabel(key: key)
             .foregroundStyle(.secondary)
             .frame(minWidth: 22)
             .frame(height: 22)
             .padding(.horizontal, 2)
             .background(.primary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
+}
 
-    @ViewBuilder
-    private var content: some View {
+/// What is printed on the cap: a symbol, or the text of a key with no symbol.
+private struct KeyCapLabel: View {
+    let key: KeyCap.Key
+
+    var body: some View {
         if let name = key.symbolName {
             Image(systemName: name)
                 .font(.system(size: 11, weight: .semibold))

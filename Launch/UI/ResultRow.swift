@@ -1,60 +1,69 @@
 import SwiftUI
 
-/// One row. There is no background; the selection is brighter text and a
-/// fuller icon.
-///
-/// Everything that changes with the selection (icon, title, subtitle) changes
-/// on the same animation, so the row moves as one thing.
+/// One row, on a single line: icon, title, and the path or kind at the right.
+/// The selection itself, glass with a glow, is drawn behind the rows by
+/// `ResultRows`; the row only brightens its text.
 struct ResultRow: View {
     let item: LauncherItem
     let isSelected: Bool
 
-    @State private var isHovered = false
-
     var body: some View {
-        HStack(spacing: 10) {
-            ItemIcon(icon: item.icon, size: 22)
-                .opacity(isSelected ? 1 : 0.65)
-            title
+        HStack(spacing: LauncherMetrics.rowSpacing) {
+            ItemIcon(icon: item.icon, size: LauncherMetrics.rowIconSize)
+            Text(item.title)
+                .font(LauncherMetrics.rowFont)
+                .lineLimit(1)
+                .layoutPriority(1)
             Spacer(minLength: 12)
             if let subtitle = item.subtitle {
                 Text(subtitle)
                     .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(isSelected ? 0.6 : 0.3))
+                    .foregroundStyle(isSelected ? AnyShapeStyle(.primary.opacity(0.7)) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
         }
+        .padding(.horizontal, LauncherMetrics.rowPadding)
         .frame(height: LauncherMetrics.rowHeight)
         .contentShape(Rectangle())
-        .onHover { isHovered = $0 }
-        .animation(LauncherMetrics.selectionAnimation, value: isSelected)
-        .animation(.smooth(duration: 0.12), value: isHovered)
     }
+}
 
-    /// A font's weight does not animate; it jumps while the colour next to it
-    /// fades. So the title is drawn in both weights and they cross-fade. The
-    /// medium one is wider, so it sets the width: sized the other way round,
-    /// it would be squeezed into the regular one's width and truncated.
-    private var title: some View {
-        Text(item.title)
-            .font(.system(size: 15, weight: .medium))
-            .lineLimit(1)
-            .foregroundStyle(Color.white)
-            .opacity(isSelected ? 1 : 0)
-            .layoutPriority(1)
-            .overlay(alignment: .leading) {
-                Text(item.title)
-                    .font(.system(size: 15))
-                    .lineLimit(1)
-                    .foregroundStyle(titleColor)
-                    .opacity(isSelected ? 0 : 1)
-                    // The label is read once, from the text underneath.
-                    .accessibilityHidden(true)
-            }
-    }
+// MARK: - Preview
 
-    private var titleColor: Color {
-        .white.opacity(isHovered ? 0.9 : 0.6)
+private extension LauncherItem {
+    /// One of each kind of row the launcher shows, and one with a title and a
+    /// path too long to fit.
+    static let previewSamples: [LauncherItem] = [
+        sample("notes", "Notes", icon: .file(path: "/System/Applications/Notes.app")),
+        sample("terminal", "Terminal", icon: .file(path: "/System/Applications/Utilities/Terminal.app")),
+        sample("file", "Quarterly Report.xlsx", subtitle: "~/Documents/Finance", icon: .file(path: #filePath)),
+        sample("process", "Google Chrome Helper", subtitle: "PID 4821 · /Applications/Google Chrome.app", icon: .tile(symbol: "cpu.fill", tint: .red)),
+        sample(
+            "long", "A file with a name that keeps going well past the end of the row.pdf",
+            subtitle: "~/Documents/Projects/Archive/2026/Reports/Quarterly/Finance/Drafts",
+            icon: .symbol("doc.text")
+        ),
+    ]
+
+    private static func sample(_ id: String, _ title: String, subtitle: String? = nil, icon: Icon) -> LauncherItem {
+        LauncherItem(id: id, title: title, subtitle: subtitle, icon: icon, primary: .init(title: "Open") { .done })
     }
+}
+
+/// Tap a row to select it and the highlight slides there. It sits on a
+/// clear-glass card like the panel's, over a colourful backdrop, because the
+/// selection is glass and its glow only reads against something.
+#Preview("Result rows") {
+    @Previewable @State var selectedID: LauncherItem.ID? = LauncherItem.previewSamples[0].id
+
+    ResultRows(items: LauncherItem.previewSamples, selectedID: selectedID) { selectedID = $0.id }
+        .padding(LauncherMetrics.listPadding)
+        .frame(width: LauncherMetrics.width)
+        .glassEffect(.clear, in: .rect(cornerRadius: LauncherMetrics.cornerRadius))
+        .padding(48)
+        .background {
+            LinearGradient(colors: [.indigo, .purple, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        .preferredColorScheme(.dark)
 }

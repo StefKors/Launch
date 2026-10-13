@@ -40,7 +40,7 @@ Press ⌘Space and start typing.
 | `kill chrome` | Running processes. Return quits one, ⌥Return force-quits it. |
 
 - **⌘Return** reveals the selected item in Finder.
-- **⌥Return** is the alternate action shown in the footer, such as Force Quit or Copy Path.
+- **⌥Return** is the alternate action, such as Force Quit or Copy Path.
 - **Backspace** on an empty field leaves file search or kill mode.
 - **Esc** closes the launcher.
 
@@ -64,4 +64,4 @@ Launch checks for updates about once a day and offers to install them. Each upda
 - **Starting over:** Welcome Guide… in the menu bar replays the welcome tour.
 
 **License**
-MIT © Launch. See [LICENSE](LICENSE). It bundles [fsearch](https://github.com/noahdunnagan/fsearch) (MIT) and [Sparkle](https://sparkle-project.org) (its own permissive license).
+MIT © Launch. See [LICENSE](LICENSE). It bundles [fsearch](https://github.com/noahdunnagan/fsearch) (MIT), an adaptation of [border-beam](https://github.com/Jakubantalik/Libraries.dev/tree/main/packages/border-beam) by Jakub Antalik (MIT, see [NOTICE](NOTICE.md)) and [Sparkle](https://sparkle-project.org) (its own permissive license).

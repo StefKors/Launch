@@ -11,31 +11,55 @@ struct PermissionsStepView: View {
                 subtitle: "These live in System Settings. Launch notices when you change them."
             )
             VStack(spacing: 12) {
-                shortcutRow
-                fullDiskAccessRow
+                ShortcutPermissionRow(model: model)
+                FullDiskAccessPermissionRow(model: model)
             }
         }
     }
+}
 
-    private var shortcutRow: some View {
-        let shortcut = model.hotKey.shortcut.displayString
-        return PermissionRow(
+private struct ShortcutPermissionRow: View {
+    let model: OnboardingModel
+
+    private var shortcut: String { model.hotKey.shortcut.displayString }
+
+    private var detail: String {
+        model.spotlightConflict
+            ? "Spotlight is using ⌘Space, so it opens instead of Launch. Turn off “Show Spotlight search” in Keyboard Shortcuts → Spotlight."
+            : "\(shortcut) is free: nothing else is using it."
+    }
+
+    var body: some View {
+        PermissionRow(
             state: model.spotlightConflict ? .needed : .granted,
             title: "Shortcut: \(shortcut)",
-            detail: model.spotlightConflict
-                ? "Spotlight is using ⌘Space, so it opens instead of Launch. Turn off “Show Spotlight search” in Keyboard Shortcuts → Spotlight."
-                : "\(shortcut) is free: nothing else is using it."
+            detail: detail
         ) {
             Button("Open Keyboard Settings") { SpotlightShortcut.openKeyboardSettings() }
         }
     }
+}
 
-    private var fullDiskAccessRow: some View {
-        PermissionRow(
-            state: fullDiskAccessState,
-            title: "Full Disk Access",
-            detail: fullDiskAccessDetail
-        ) {
+private struct FullDiskAccessPermissionRow: View {
+    let model: OnboardingModel
+
+    private var state: PermissionState {
+        if model.needsRestartForFullDiskAccess { return .needed }
+        return model.fullDiskAccessGranted ? .granted : .optional
+    }
+
+    private var detail: String {
+        if model.needsRestartForFullDiskAccess {
+            return "Granted. Restart Launch so file search can see Desktop, Documents, Downloads and iCloud Drive. This tour reopens right here."
+        }
+        if model.fullDiskAccessGranted {
+            return "Granted. File search can see Desktop, Documents, Downloads and iCloud Drive."
+        }
+        return "Lets file search include Desktop, Documents, Downloads and iCloud Drive. Without it Launch skips those folders. If Launch isn't listed, click + and add it."
+    }
+
+    var body: some View {
+        PermissionRow(state: state, title: "Full Disk Access", detail: detail) {
             if model.needsRestartForFullDiskAccess {
                 // The tour reopens at this step after the restart.
                 Button("Restart Launch") { model.requestRestart() }
@@ -44,20 +68,5 @@ struct PermissionsStepView: View {
                 Button("Show Launch in Finder") { NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL]) }
             }
         }
-    }
-
-    private var fullDiskAccessState: PermissionState {
-        if model.needsRestartForFullDiskAccess { return .needed }
-        return model.fullDiskAccessGranted ? .granted : .optional
-    }
-
-    private var fullDiskAccessDetail: String {
-        if model.needsRestartForFullDiskAccess {
-            return "Granted. Restart Launch so file search can see Desktop, Documents, Downloads and iCloud Drive. This tour reopens right here."
-        }
-        if model.fullDiskAccessGranted {
-            return "Granted. File search can see Desktop, Documents, Downloads and iCloud Drive."
-        }
-        return "Lets file search include Desktop, Documents, Downloads and iCloud Drive. Without it Launch skips those folders. If Launch isn't listed, click + and add it."
     }
 }
