@@ -10,7 +10,8 @@ struct ActionErrorBar: View {
             .font(.system(size: 12))
             .foregroundStyle(.orange)
             .lineLimit(1)
+            .padding(.horizontal, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: LauncherMetrics.footerHeight)
+            .frame(height: LauncherMetrics.errorHeight)
     }
 }

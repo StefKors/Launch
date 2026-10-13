@@ -40,7 +40,7 @@ Press ⌘Space and start typing.
 | `kill chrome` | Running processes. Return quits one, ⌥Return force-quits it. |
 
 - **⌘Return** reveals the selected item in Finder.
-- **⌥Return** is the alternate action shown in the footer, such as Force Quit or Copy Path.
+- **⌥Return** is the alternate action, such as Force Quit or Copy Path.
 - **Backspace** on an empty field leaves file search or kill mode.
 - **Esc** closes the launcher.
 

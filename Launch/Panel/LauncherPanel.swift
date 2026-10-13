@@ -19,10 +19,10 @@ final class LauncherPanel: NSPanel {
         isMovable = false
         isOpaque = false
         backgroundColor = .clear
-        // No frame and no shadow: the view draws a pool of blur that fades out
-        // on its own, and the rest of the panel is transparent.
+        // The SwiftUI card draws its own shadow; the panel is mostly transparent.
         hasShadow = false
-        // White labels over a dark blur, whatever the system appearance.
+        // Clear glass shows whatever is behind it, so the labels are white over
+        // a dark scrim, whatever the system appearance.
         appearance = NSAppearance(named: .darkAqua)
         animationBehavior = .none
     }

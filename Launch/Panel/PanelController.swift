@@ -19,7 +19,7 @@ final class PanelController {
     }
 
     /// Whether the launcher is meant to be showing. The window outlives this by
-    /// `LauncherMetrics.transitionDuration` while it blurs away.
+    /// `LauncherMetrics.transitionDuration` while the card blurs away.
     private(set) var isShown = false
     private var pendingOrderOut: DispatchWorkItem?
 
@@ -65,17 +65,17 @@ final class PanelController {
         DispatchQueue.main.asyncAfter(deadline: .now() + LauncherMetrics.transitionDuration, execute: order)
     }
 
-    /// The content (not the window, which has a transparent margin for the
-    /// blur to fade out in) starts a seventh of the way down the screen under
-    /// the mouse. On a short screen the window is cut down to fit, and the
-    /// list shows fewer rows.
+    /// The card (not the window, which has a transparent margin for the
+    /// shadow) starts a seventh of the way down the screen under the mouse. On
+    /// a short screen the window is cut down to fit, and the list shows fewer
+    /// rows.
     private func position() {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
         var size = LauncherMetrics.panelSize
         size.height = min(size.height, visible.height)
-        let top = visible.maxY - visible.height * 0.14 + LauncherMetrics.blurMarginTop
+        let top = visible.maxY - visible.height * 0.14 + LauncherMetrics.shadowMargin
         let origin = NSPoint(
             x: visible.midX - size.width / 2,
             y: max(visible.minY, top - size.height)
