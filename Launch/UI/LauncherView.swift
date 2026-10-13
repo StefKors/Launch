@@ -8,6 +8,18 @@ enum LauncherMetrics {
     static let rowHeight: CGFloat = 36
     static let maxRows = 10
     static let listPadding: CGFloat = 8
+
+    // What the rows and the search field share, so that the magnifier sits over
+    // the row icons and the typed text starts where the titles do.
+    static let rowIconSize: CGFloat = 24
+    /// Between a row's icon and its title, and between the field's magnifier and
+    /// its text.
+    static let rowSpacing: CGFloat = 12
+    /// A row's own padding inside the list's.
+    static let rowPadding: CGFloat = 10
+    /// How far in from the card's edge the icons start.
+    static let contentInset = listPadding + rowPadding
+    static let rowFont = Font.system(size: 14)
     /// Only taken when an action fails and its error shows.
     static let errorHeight: CGFloat = 34
     static let dividerHeight: CGFloat = 1

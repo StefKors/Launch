@@ -61,7 +61,8 @@ enum RowGlowSpec {
     // MARK: Layers
 
     static let borderWidth = 1.0
-    /// How far in from the edge the wash reaches.
+    /// How far in from the edge the wash reaches, at most: on a short shape it
+    /// reaches half the height, so it fades to nothing in the middle.
     static let washEdgeFade = 28.0
     static let washOpacity = 0.44
     static let ringOpacity = 1.0

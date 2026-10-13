@@ -1,25 +1,17 @@
 import SwiftUI
 
 /// One row, on a single line: icon, title, and the path or kind at the right.
-///
-/// The selected row is a piece of regular glass on the card's clear glass, with
-/// a glow breathing round its border in the colours of its own icon, so slowly
-/// that it only reads as a shimmer.
+/// The selection itself, glass with a glow, is drawn behind the rows by
+/// `ResultRows`; the row only brightens its text.
 struct ResultRow: View {
-    /// How slowly the glow breathes; see `RowGlow`.
-    private static let glowPeriod: TimeInterval = 40
-    /// The glass and the glow round their corners alike: continuous, 12 pt.
-    private static let cornerRadius: CGFloat = 12
-    private static let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
     let item: LauncherItem
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
-            ItemIcon(icon: item.icon, size: 24)
+        HStack(spacing: LauncherMetrics.rowSpacing) {
+            ItemIcon(icon: item.icon, size: LauncherMetrics.rowIconSize)
             Text(item.title)
-                .font(.system(size: 14))
+                .font(LauncherMetrics.rowFont)
                 .lineLimit(1)
                 .layoutPriority(1)
             Spacer(minLength: 12)
@@ -31,19 +23,8 @@ struct ResultRow: View {
                     .truncationMode(.middle)
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, LauncherMetrics.rowPadding)
         .frame(height: LauncherMetrics.rowHeight)
-        // On top of the glass. Only the selected row draws anything.
-        .background {
-            RowGlow(
-                colors: IconPalette.colors(for: item.icon),
-                cornerRadius: Self.cornerRadius,
-                isActive: isSelected,
-                period: Self.glowPeriod
-            )
-        }
-        .compositingGroup()
-        .glassEffect(isSelected ? .regular : .identity, in: Self.shape)
         .contentShape(Rectangle())
     }
 }
@@ -70,24 +51,19 @@ private extension LauncherItem {
     }
 }
 
-/// Tap a row to select it. It sits on a clear-glass card like the panel's, over
-/// a colourful backdrop, because the selected row is glass and its glow only
-/// reads against something.
+/// Tap a row to select it and the highlight slides there. It sits on a
+/// clear-glass card like the panel's, over a colourful backdrop, because the
+/// selection is glass and its glow only reads against something.
 #Preview("Result rows") {
     @Previewable @State var selectedID: LauncherItem.ID? = LauncherItem.previewSamples[0].id
 
-    VStack(spacing: 0) {
-        ForEach(LauncherItem.previewSamples) { item in
-            ResultRow(item: item, isSelected: item.id == selectedID)
-                .onTapGesture { selectedID = item.id }
+    ResultRows(items: LauncherItem.previewSamples, selectedID: selectedID) { selectedID = $0.id }
+        .padding(LauncherMetrics.listPadding)
+        .frame(width: LauncherMetrics.width)
+        .glassEffect(.clear, in: .rect(cornerRadius: LauncherMetrics.cornerRadius))
+        .padding(48)
+        .background {
+            LinearGradient(colors: [.indigo, .purple, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
         }
-    }
-    .padding(LauncherMetrics.listPadding)
-    .frame(width: LauncherMetrics.width)
-    .glassEffect(.clear, in: .rect(cornerRadius: LauncherMetrics.cornerRadius))
-    .padding(48)
-//    .background {
-//        LinearGradient(colors: [.indigo, .purple, .pink, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
-//    }
-    .preferredColorScheme(.dark)
+        .preferredColorScheme(.dark)
 }

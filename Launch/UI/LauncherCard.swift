@@ -57,13 +57,7 @@ private struct ResultList: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(model.results) { item in
-                        ResultRow(item: item, isSelected: item.id == model.selectedID)
-                            .id(item.id)
-                            .onTapGesture { model.activate(item) }
-                    }
-                }
+                ResultRows(items: model.results, selectedID: model.selectedID) { model.activate($0) }
                 .padding(LauncherMetrics.listPadding)
             }
             .scrollIndicators(.never)
