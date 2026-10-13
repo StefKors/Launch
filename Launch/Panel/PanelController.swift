@@ -5,7 +5,7 @@ import SwiftUI
 final class PanelController {
     let model: LauncherViewModel
     private let panel: LauncherPanel
-    private var keyMonitor: Any?
+    private lazy var keyMonitor = LocalKeyMonitor { [weak self] event in self?.handle(event) ?? false }
 
     init(model: LauncherViewModel) {
         self.model = model
@@ -39,7 +39,7 @@ final class PanelController {
         model.reset()
         position()
         panel.makeKeyAndOrderFront(nil)
-        installKeyMonitor()
+        keyMonitor.install()
         // One turn later, so the window is up before it animates in.
         DispatchQueue.main.async { [weak self] in
             guard let self, isShown else { return }
@@ -50,7 +50,7 @@ final class PanelController {
     func hide() {
         guard isShown else { return }
         isShown = false
-        removeKeyMonitor()
+        keyMonitor.remove()
         model.cancel()
         model.isPresented = false
         // Whatever is under the launcher gets the clicks while it fades.
@@ -84,20 +84,6 @@ final class PanelController {
     }
 
     // MARK: Keys
-
-    private func installKeyMonitor() {
-        guard keyMonitor == nil else { return }
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            nonisolated(unsafe) let event = event
-            let consumed = MainActor.assumeIsolated { self?.handle(event) ?? false }
-            return consumed ? nil : event
-        }
-    }
-
-    private func removeKeyMonitor() {
-        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
-        keyMonitor = nil
-    }
 
     /// Returns true when the event was handled and must not reach the field.
     private func handle(_ event: NSEvent) -> Bool {

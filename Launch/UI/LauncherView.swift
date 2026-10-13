@@ -34,7 +34,7 @@ enum LauncherMetrics {
 }
 
 struct LauncherView: View {
-    @Bindable var model: LauncherViewModel
+    let model: LauncherViewModel
 
     private let shape = RoundedRectangle(cornerRadius: LauncherMetrics.cornerRadius, style: .continuous)
 
@@ -58,7 +58,7 @@ struct LauncherView: View {
 
             if !model.results.isEmpty {
                 Divider().opacity(0.5)
-                resultList
+                ResultList(model: model)
                 if let message = model.errorMessage {
                     Divider().opacity(0.5)
                     ActionErrorBar(message: message)
@@ -87,8 +87,19 @@ struct LauncherView: View {
             set: { model.query = $0; model.queryChanged() }
         )
     }
+}
 
-    private var resultList: some View {
+/// The rows. It reads the results and the selection itself, so moving the
+/// selection redraws the list and not the card around it.
+private struct ResultList: View {
+    let model: LauncherViewModel
+
+    private var height: CGFloat {
+        CGFloat(min(model.results.count, LauncherMetrics.maxRows)) * LauncherMetrics.rowHeight
+            + LauncherMetrics.listPadding * 2
+    }
+
+    var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
@@ -101,15 +112,10 @@ struct LauncherView: View {
                 .padding(LauncherMetrics.listPadding)
             }
             .scrollIndicators(.never)
-            .frame(height: listHeight)
+            .frame(height: height)
             .onChange(of: model.selectedID) {
                 if let id = model.selectedID { proxy.scrollTo(id) }
             }
         }
-    }
-
-    private var listHeight: CGFloat {
-        CGFloat(min(model.results.count, LauncherMetrics.maxRows)) * LauncherMetrics.rowHeight
-            + LauncherMetrics.listPadding * 2
     }
 }

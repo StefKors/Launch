@@ -23,7 +23,7 @@ nonisolated enum FileSearchOutcome: Sendable {
     case superseded
 }
 
-nonisolated struct FileSearchStatus: Decodable, Sendable {
+nonisolated struct FileSearchStatus: Decodable, Sendable, Equatable {
     let ready: Bool
     let progress: String?
     /// False when consent-gated folders are being skipped.

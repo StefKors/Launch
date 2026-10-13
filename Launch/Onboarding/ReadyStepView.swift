@@ -4,6 +4,18 @@ import SwiftUI
 struct ReadyStepView: View {
     let model: OnboardingModel
 
+    /// The shortcut as separate caps ("⌘", "Space").
+    private var shortcutKeys: [KeyCap.Key] {
+        let shortcut = model.hotKey.shortcut
+        var keys: [KeyCap.Key] = []
+        if shortcut.modifiers & UInt32(controlKey) != 0 { keys.append(.text("⌃")) }
+        if shortcut.modifiers & UInt32(optionKey) != 0 { keys.append(.option) }
+        if shortcut.modifiers & UInt32(shiftKey) != 0 { keys.append(.text("⇧")) }
+        if shortcut.modifiers & UInt32(cmdKey) != 0 { keys.append(.command) }
+        keys.append(.text(shortcut.label))
+        return keys
+    }
+
     var body: some View {
         VStack(spacing: 22) {
             Image(systemName: "checkmark.circle.fill")
@@ -25,17 +37,5 @@ struct ReadyStepView: View {
                 }
             }
         }
-    }
-
-    /// The shortcut as separate caps ("⌘", "Space").
-    private var shortcutKeys: [KeyCap.Key] {
-        let shortcut = model.hotKey.shortcut
-        var keys: [KeyCap.Key] = []
-        if shortcut.modifiers & UInt32(controlKey) != 0 { keys.append(.text("⌃")) }
-        if shortcut.modifiers & UInt32(optionKey) != 0 { keys.append(.option) }
-        if shortcut.modifiers & UInt32(shiftKey) != 0 { keys.append(.text("⇧")) }
-        if shortcut.modifiers & UInt32(cmdKey) != 0 { keys.append(.command) }
-        keys.append(.text(shortcut.label))
-        return keys
     }
 }
