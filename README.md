@@ -19,6 +19,7 @@ A Spotlight-style launcher for macOS. Press ⌘Space, type, press Return.
 - Opens apps from a few letters or their initials, and learns which ones you use most
 - Searches files and folders across your whole Mac, powered by [fsearch](https://github.com/noahdunnagan/fsearch)
 - Quits or force-quits any of your running processes with `kill`
+- Shows today's and tomorrow's Calendar events in the menu bar, with the next one as text beside the icon
 - Updates itself, and has no analytics
 - Native macOS look with Liquid Glass
 
@@ -61,7 +62,7 @@ Launch checks for updates about once a day and offers to install them. Each upda
 - **Spotlight opens instead of Launch:** turn off its ⌘Space shortcut (see Install), or record a different shortcut in Settings.
 - **A file isn't found:** if it's in Desktop, Documents or Downloads, grant Full Disk Access. Files in Pictures, Movies, Music and Library aren't searched.
 - **The first search is empty:** on first launch Launch is still building its file index, which takes a few seconds. Searching files shows "Indexing files…" until it's done.
-- **Starting over:** Welcome Guide… in the menu bar replays the welcome tour.
+- **Starting over:** the welcome tour comes back on its own until you finish it. Once finished, it can only be replayed from a development build.
 
 **License**
 MIT © Launch. See [LICENSE](LICENSE). It bundles [fsearch](https://github.com/noahdunnagan/fsearch) (MIT), an adaptation of [border-beam](https://github.com/Jakubantalik/Libraries.dev/tree/main/packages/border-beam) by Jakub Antalik (MIT, see [NOTICE](NOTICE.md)) and [Sparkle](https://sparkle-project.org) (its own permissive license).

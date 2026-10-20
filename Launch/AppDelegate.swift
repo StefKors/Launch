@@ -7,6 +7,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let features = FeatureSettings()
     let fileSearch: FileSearchHost
     let updater: Updater
+    let calendar = CalendarStore()
+    private var menuBar: MenuBarController?
     private(set) lazy var settingsWindow = SettingsWindowController(hotKey: hotKeySettings, features: features, updater: updater, fileSearch: fileSearch)
     private(set) lazy var onboardingWindow = OnboardingWindowController(hotKey: hotKeySettings, features: features, fileSearch: fileSearch) { [weak self] in
         self?.panelController.show()
@@ -53,6 +55,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !isTestHost else { return }
         hotKeySettings.onChange = { [weak self] in self?.registerHotKey() }
         registerHotKey()
+        calendar.start()
+        menuBar = MenuBarController(
+            calendar: calendar,
+            updater: updater,
+            showLauncher: { [weak self] in self?.panelController.show() },
+            showWelcome: { [weak self] in self?.onboardingWindow.show() },
+            showSettings: { [weak self] in self?.settingsWindow.show() }
+        )
         showOnboardingUnlessFinished()
         // Lets a script open the panel without the hotkey.
         if CommandLine.arguments.contains("--show") {
