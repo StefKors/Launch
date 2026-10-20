@@ -5,6 +5,8 @@ import SwiftUI
 struct LauncherCard: View {
     let model: LauncherViewModel
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private let shape = RoundedRectangle(cornerRadius: LauncherMetrics.cornerRadius, style: .continuous)
 
     /// Typing runs a search. Changes the model makes itself (reset, entering
@@ -14,6 +16,18 @@ struct LauncherCard: View {
             get: { model.query },
             set: { model.query = $0; model.queryChanged() }
         )
+    }
+
+    /// Dark in dark mode so white labels read over clear glass; a light tint in
+    /// light mode.
+    private var scrim: Color {
+        colorScheme == .dark ? .black.opacity(0.28) : .white.opacity(0.15)
+    }
+
+    /// Clear glass in dark mode; in light mode regular glass, which frosts and
+    /// brightens like Spotlight instead of showing a dark wallpaper through.
+    private var glass: Glass {
+        colorScheme == .dark ? .clear : .regular
     }
 
     var body: some View {
@@ -30,9 +44,9 @@ struct LauncherCard: View {
             }
         }
         .frame(width: LauncherMetrics.width)
-        .background(shape.fill(.black.opacity(0.28)))
-        .glassEffect(.clear, in: shape)
-        .shadow(color: .black.opacity(0.25), radius: 24, y: 10)
+        .background(shape.fill(scrim))
+        .glassEffect(glass, in: shape)
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.25 : 0.15), radius: 24, y: 10)
         // Blurs in as it appears and out as it goes.
         .blur(radius: model.isPresented ? 0 : 14)
         .opacity(model.isPresented ? 1 : 0)

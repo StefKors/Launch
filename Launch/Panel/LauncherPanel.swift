@@ -21,9 +21,8 @@ final class LauncherPanel: NSPanel {
         backgroundColor = .clear
         // The SwiftUI card draws its own shadow; the panel is mostly transparent.
         hasShadow = false
-        // Clear glass shows whatever is behind it, so the labels are white over
-        // a dark scrim, whatever the system appearance.
-        appearance = NSAppearance(named: .darkAqua)
+        // No fixed appearance: the panel follows the system, and the card's
+        // scrim switches with it so the labels stay readable either way.
         animationBehavior = .none
     }
 
