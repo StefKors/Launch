@@ -11,5 +11,8 @@
 	<string>hFNRLNdq7Z+QwtL4tJ0CzUxE96dl6NifM74FPzLds1M=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<!-- Calendar access for the menu bar's list of today's and tomorrow's events. -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Launch shows today’s and tomorrow’s events in the menu bar and its menu. Events stay on your Mac.</string>
 </dict>
 </plist>

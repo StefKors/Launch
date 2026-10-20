@@ -30,6 +30,7 @@ The tests run inside the app as their host. The host skips indexing the disk, th
 - `Launch/Search`: the `FileSearching` seam and the in-process fsearch engine. `FileSearchHost` starts the engine only when File Search is on.
 - `Launch/Onboarding`: the welcome tour. Its step is saved, so it resumes after a restart.
 - `Launch/Settings`: the settings window and its sections.
+- `Launch/Calendar`: the menu bar's events. `CalendarAgenda` is plain logic (tested); `CalendarStore` reads EventKit.
 - `Launch/Updates`: the Sparkle updater.
 - `Config/Info.plist`: Sparkle's feed URL and public key, merged into the app's Info.plist.
 - `Rust/`: the C interface to fsearch (`include/launch_fsearch.h`).
